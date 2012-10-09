@@ -1,35 +1,32 @@
 package es.netrunners;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.google.android.maps.GeoPoint;
-import com.google.android.maps.ItemizedOverlay;
 import com.google.android.maps.MapActivity;
 import com.google.android.maps.MapView;
 import com.google.android.maps.MyLocationOverlay;
 import com.google.android.maps.Overlay;
 import com.google.android.maps.OverlayItem;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.Window;
 import android.widget.EditText;
-import android.widget.Toast;
 
 public class MapsActivity extends MapActivity {
 
 	MapView mapView;
-	
+
 	MyItemizedOverlay overlay;
+
+	long touchTime;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -43,21 +40,26 @@ public class MapsActivity extends MapActivity {
 		mapView.getController().setZoom(14);
 		// Centra el mapa en la posición Lat: 39.008510, Long:-1.863080
 		mapView.getController().setCenter(getGeoPoint(39.008510, -1.863080));
-		// setMyLocation();
+		setMyLocation();
 		mapView.setBuiltInZoomControls(false);
-		mapView.setOnTouchListener(new OnTouchListener() {
 
+		mapView.setOnTouchListener(new OnTouchListener() {
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
-				// Comprobamos si el usuario ha levantado el dedo del Mapa
-				if (event.getAction() == MotionEvent.ACTION_UP) {
+				// Guardamos la hora actual
+				if (event.getAction() == MotionEvent.ACTION_DOWN) {
+					touchTime = System.currentTimeMillis();
+				}
+				// Comprobamos si el usuario ha levantado el dedo del Mapa y si
+				// ha pasado más de 1 segundo
+				if (event.getAction() == MotionEvent.ACTION_UP
+						&& ((System.currentTimeMillis() - touchTime) > 1000)) {
 					// Con la información de posición del evento obtenemos la
 					// posición en el mapa
 					final GeoPoint p = mapView.getProjection().fromPixels(
 							(int) event.getX(), (int) event.getY());
 					showNewPointDialog(p);
 				}
-
 				return false;
 			}
 		});
@@ -79,24 +81,19 @@ public class MapsActivity extends MapActivity {
 		mapOverlays.add(overlay);
 
 	}
-	
-	private void showNewPointDialog(final GeoPoint p)
-	{
-		AlertDialog.Builder builder = new AlertDialog.Builder(
-				this);
-		
-		LayoutInflater factory = LayoutInflater
-				.from(this);
-		final View textEntryView = factory.inflate(R.layout.dialog,
-				null);
+
+	private void showNewPointDialog(final GeoPoint p) {
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+		LayoutInflater factory = LayoutInflater.from(this);
+		final View textEntryView = factory.inflate(R.layout.dialog, null);
 		builder.setView(textEntryView);
 		builder.setTitle("Nuevo Punto")
 				.setCancelable(false)
 				.setPositiveButton("Añadir",
 						new DialogInterface.OnClickListener() {
 							@Override
-							public void onClick(
-									DialogInterface dialog, int id) {
+							public void onClick(DialogInterface dialog, int id) {
 								EditText titulo = (EditText) textEntryView
 										.findViewById(R.id.titulo);
 								EditText descripcion = (EditText) textEntryView
@@ -104,15 +101,15 @@ public class MapsActivity extends MapActivity {
 								// Creamos el GeoPoint con las
 								// coordenadas del punto
 								// seleccionado por el usuario
-								
+
 								// Creamos un OverlayItem con el
 								// punto creado, titulo, y mensaje
-								OverlayItem overlayitem = new OverlayItem(
-										p, titulo.getText()
-												.toString(),
-										descripcion.getText()
-												.toString());
+								OverlayItem overlayitem = new OverlayItem(p,
+										titulo.getText().toString(),
+										descripcion.getText().toString());
 								overlay.addOverlay(overlayitem);
+								// Recargamos el mapa para que se muestre el
+								// nuevo punto
 								mapView.postInvalidate();
 							}
 
@@ -120,8 +117,7 @@ public class MapsActivity extends MapActivity {
 				.setNegativeButton("Cancelar",
 						new DialogInterface.OnClickListener() {
 							@Override
-							public void onClick(
-									DialogInterface dialog, int id) {
+							public void onClick(DialogInterface dialog, int id) {
 								dialog.cancel();
 							}
 						});
@@ -164,21 +160,20 @@ public class MapsActivity extends MapActivity {
 
 	@Override
 	protected void onResume() {
-		// myLocationOverlay.enableMyLocation();
-		// myLocationOverlay.enableCompass();
+		myLocationOverlay.enableMyLocation();
+		myLocationOverlay.enableCompass();
 		super.onResume();
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		// myLocationOverlay.disableCompass();
-		// myLocationOverlay.disableMyLocation();
+		myLocationOverlay.disableCompass();
+		myLocationOverlay.disableMyLocation();
 	}
 
 	@Override
 	protected boolean isRouteDisplayed() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 }
